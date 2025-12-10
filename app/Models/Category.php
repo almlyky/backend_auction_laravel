@@ -11,11 +11,10 @@ class Category extends Model
         "name_ar",
         "name_en",
         "parent_id",
-        'subCategory'
     ];
-    public function subCategory()
+    protected $hidden=['created_at','updated_at'];
+     public function children()
     {
-        return $this->hasMany($this::class, 'parent_id', 'id');
+        return $this->hasMany(Category::class, 'parent_id');
     }
-    protected $appends=['subCategory'];
 }

@@ -1,0 +1,9 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.example.auction",
+    "sha256_cert_fingerprints":
+    ["F0:31:9A:3A:C2:1A:BC:7A:38:C6:35:88:8E:3E:74:A3:81:97:42:91:EC:11:61:4E:B0:BF:51:F9:13:4C:29:E6"]
+  }
+}]

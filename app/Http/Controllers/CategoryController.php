@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Post;
 use Illuminate\Http\Request;
 
 class CategoryController extends Controller
@@ -13,7 +14,7 @@ class CategoryController extends Controller
     public function index()
     {
         try{
-            $category=Category::all();
+            $category=Category::with('children')->where('parent_id',null)->get();
             return response()->json(['success'=>true,'data'=>$category],200);
         }
         catch(\Exception $e){
@@ -49,9 +50,26 @@ class CategoryController extends Controller
      */
     public function show(Category $category)
     {
-        //
+
+    //       $category = Category::with('children')->find($category->id);
+
+    // return response()->json($category);
+
+        
          try{
-        return response()->json(["success"=>true,"data"=>$category],200);
+             $category = Category::with('children')->find($category->id);
+             if(!$category->children->isEmpty()){
+                $categoryIds = [];
+             foreach($category->children as $child){
+                    $categoryIds[] = $child->id;
+             }
+                $posts = Post::whereIn('category_id', $categoryIds)->get();
+             }
+             else{
+                $posts = Post::where('category_id', $category->id)->get();
+             }
+            $data=["posts"=>$posts,"category"=>$category];
+        return response()->json(["success"=>true,"data"=>$data],200);
         }
         catch(\Exception $e){
         return response()->json(["success"=>false,"error"=>$e->getMessage()],404);
