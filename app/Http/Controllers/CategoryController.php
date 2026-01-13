@@ -15,6 +15,7 @@ class CategoryController extends Controller
     {
         try{
             $category=Category::with('children')->where('parent_id',null)->get();
+            // $category=Category::with('children')->get();
             return response()->json(['success'=>true,'data'=>$category],200);
         }
         catch(\Exception $e){
@@ -45,19 +46,12 @@ class CategoryController extends Controller
         }
     }
 
-    /**
-     * Display the specified resource.
-     */
+    // function get all posts by category id or get also posts of its subcategories 
     public function show(Category $category)
-    {
-
-    //       $category = Category::with('children')->find($category->id);
-
-    // return response()->json($category);
-
-        
+    {   
          try{
              $category = Category::with('children')->find($category->id);
+            //  check if category has children get posts of all children categories
              if(!$category->children->isEmpty()){
                 $categoryIds = [];
              foreach($category->children as $child){
@@ -65,6 +59,7 @@ class CategoryController extends Controller
              }
                 $posts = Post::whereIn('category_id', $categoryIds)->get();
              }
+            //  if not has children get posts of this category only
              else{
                 $posts = Post::where('category_id', $category->id)->get();
              }

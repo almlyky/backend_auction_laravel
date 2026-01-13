@@ -17,5 +17,5 @@ class PostImage extends Model
         
     }
     
-    protected $hidden=['created_at','updated_at','post_id','id'];
+    protected $hidden=['created_at','updated_at','post_id'];
 }

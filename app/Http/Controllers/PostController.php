@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Post;
 use App\Models\PostImage;
+use Illuminate\Container\Attributes\Storage;
 use Illuminate\Http\Request;
 use Symfony\Component\Console\Input\Input;
 
@@ -111,7 +112,46 @@ class PostController extends Controller
      */
     public function update(Request $request, Post $post)
     {
-        //
+        try{
+            $input= $request->all();
+            $post->update($input['data']);
+            $deletedImages = $input['deleted_images_ids'] ?? [];
+            
+            if (!empty($deletedImages)) {
+                $imagesToDelete = PostImage::whereIn('id', $deletedImages)->get();
+                foreach ($imagesToDelete as $image) {
+                    // حذف الصورة من التخزين
+                    if (file_exists(public_path($image->image_url))) {
+                        unlink(public_path($image->image_url));
+                    }
+                }
+                // حذف السجلات من قاعدة البيانات
+                PostImage::whereIn('id', $deletedImages)->delete();
+            }
+            if ($request->hasFile('images')) {
+                foreach ($request->file(('images')) as $image) {
+                    $file = $image;
+                    $extension = $file->getClientOriginalExtension(); // يمتد عبر المسار الأصلي بدون نقطة
+                    $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME); // الاسم فقط بدون امتداد
+
+                    $imagename = $filename  . '.' . $extension;
+
+                    $file->move(public_path('postImages'), $imagename);
+                    $path = 'postImages/' . $imagename;
+
+                    PostImage::create([
+                        'post_id' => $post->id,
+                        'image_url' => $path
+                    ]);
+                }
+            }
+            
+
+            
+        }
+        catch (\Exception $e) {
+            return response()->json(["success" => false, "error" => $e->getMessage()], 404);
+        }
     }
 
     /**

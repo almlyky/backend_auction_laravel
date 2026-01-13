@@ -44,8 +44,9 @@ class FavoriteController extends Controller
                 return response()->json(['success' => false, 'message' => 'This favorite already exists'], 409);
             }
             $input=$request->all();
-            Favorite::create($input);
-            return response()-> json(['success'=>true,'message'=>'successfuly add category'],201);
+            $favorite= Favorite::create($input);
+            $favorite->load('post');
+            return response()-> json(['success'=>true,'message'=>'successfuly add category','data'=>$favorite],201);
         }
         catch(\Exception $e ){
             return response()->json(['success'=>false,'error'=>$e->getMessage()]);
