@@ -25,7 +25,9 @@ class User extends Authenticatable implements JWTSubject
         'password',
         "remember_token",
         'verification_token',
-        'token_expires_at'
+        'token_expires_at',
+        'is_admin',
+        'is_blocked',
     ];
 
     /**
@@ -71,5 +73,30 @@ class User extends Authenticatable implements JWTSubject
     public function getJWTCustomClaims()
     {
         return [];
+    }
+
+    public function reports()
+    {
+        return $this->hasMany(Report::class, 'reporter_id');
+    }
+
+    public function receivedReports()
+    {
+        return $this->hasMany(Report::class, 'reported_user_id');
+    }
+
+    public function blocksMade()
+    {
+        return $this->hasMany(Block::class, 'blocked_by');
+    }
+
+    public function blocksReceived()
+    {
+        return $this->hasMany(Block::class, 'user_id');
+    }
+
+    public function posts()
+    {
+        return $this->hasMany(Post::class, 'user_id');
     }
 }

@@ -16,7 +16,7 @@ class PostController extends Controller
     public function index()
     {
         try {
-            
+
             $post = Post::all();
             return response()->json(["success" => true, "data" => $post], 200);
         } catch (\Exception $e) {
@@ -38,6 +38,22 @@ class PostController extends Controller
      */
     public function store(Request $request)
     {
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
+            'data' => 'required|array',
+            'data.name' => 'required|string|max:255',
+            'data.description' => 'nullable|string',
+            'data.price' => 'required|numeric',
+            'data.user_id' => 'required|integer|exists:users,id',
+            'images' => 'nullable',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'error' => $validator->errors()
+            ], 422);
+        }
         $input = $request->all();
         try {
             $post = Post::create($input['data']);
@@ -87,14 +103,13 @@ class PostController extends Controller
             return response()->json(["success" => false, "error" => $e->getMessage()], 404);
         }
     }
-    public function showPostByUser( $userId)
+    public function showPostByUser($userId)
     {
         //
-        try{
-            $post=Post::where('user_id',$userId)->get();
-            return response()->json(['data'=>$post]);
-        }
-        catch (\Exception $e) {
+        try {
+            $post = Post::where('user_id', $userId)->get();
+            return response()->json(['data' => $post]);
+        } catch (\Exception $e) {
             return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
     }
@@ -110,49 +125,64 @@ class PostController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Post $post)
+    public function update(Request $request, $postId)
     {
-        try{
-            $input= $request->all();
+        try {
+            $input = $request->all();
+
+            $post = Post::findOrFail($postId);
+
+            // تحديث بيانات البوست (بدون الصور)
             $post->update($input['data']);
-            $deletedImages = $input['deleted_images_ids'] ?? [];
-            
+
+            // معالجة الصور المحذوفة
+            $deletedImages = $request->input('deleted_images_ids', []);
+
+            // في حال وصلت كنص JSON من Flutter
+            if (is_string($deletedImages)) {
+                $deletedImages = json_decode($deletedImages, true) ?? [];
+            }
+
             if (!empty($deletedImages)) {
-                $imagesToDelete = PostImage::whereIn('id', $deletedImages)->get();
-                foreach ($imagesToDelete as $image) {
-                    // حذف الصورة من التخزين
-                    if (file_exists(public_path($image->image_url))) {
+                $images = PostImage::whereIn('id', $deletedImages)->get();
+
+                foreach ($images as $image) {
+                    if ($image->image_url && file_exists(public_path($image->image_url))) {
                         unlink(public_path($image->image_url));
                     }
                 }
-                // حذف السجلات من قاعدة البيانات
+
                 PostImage::whereIn('id', $deletedImages)->delete();
             }
+
+            // إضافة صور جديدة
             if ($request->hasFile('images')) {
-                foreach ($request->file(('images')) as $image) {
-                    $file = $image;
-                    $extension = $file->getClientOriginalExtension(); // يمتد عبر المسار الأصلي بدون نقطة
-                    $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME); // الاسم فقط بدون امتداد
+                foreach ($request->file('images') as $image) {
 
-                    $imagename = $filename  . '.' . $extension;
-
-                    $file->move(public_path('postImages'), $imagename);
-                    $path = 'postImages/' . $imagename;
+                    $name = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+                    $image->move(public_path('postImages'), $name);
 
                     PostImage::create([
                         'post_id' => $post->id,
-                        'image_url' => $path
+                        'image_url' => 'postImages/' . $name,
                     ]);
                 }
             }
-            
+            $updatedPost = Post::find($postId);
 
-            
-        }
-        catch (\Exception $e) {
-            return response()->json(["success" => false, "error" => $e->getMessage()], 404);
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث الإعلان بنجاح',
+                'data' => $updatedPost,
+            ], 200);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 500);
         }
     }
+
 
     /**
      * Remove the specified resource from storage.
@@ -165,5 +195,21 @@ class PostController extends Controller
         } catch (\Exception $e) {
             return response()->json(["success" => false, "error" => $e->getMessage()], 404);
         }
+    }
+
+    public function markSold($id)
+    {
+        $post = Post::findOrFail($id);
+
+        if ($post->status == 'sold') {
+            return response()->json(['success' => false, 'message' => 'الإعلان بالفعل تم بيعه'], 400);
+        }
+
+        $post->update([
+            'status' => 'sold',
+            'sold_at' => now()
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'تم وضع الإعلان كـ تم البيع', 'post' => $post]);
     }
 }

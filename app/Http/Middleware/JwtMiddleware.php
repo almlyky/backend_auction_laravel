@@ -24,6 +24,9 @@ class JwtMiddleware
             if(!$user){
                 return response()->json(['error' => 'Unauthorized'], 401);
             }
+            if ($user->is_blocked) {
+                return response()->json(['error' => 'Your account has been blocked.'], 403);
+            }
             // $user = JWTAuth::parseToken()->authenticate();
         } catch (\Exception $e) {
             return response()->json(['error' => 'Unauthorized','message'=>$e->getMessage()], 401);

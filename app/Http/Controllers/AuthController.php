@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\JWT;
 
 class AuthController extends Controller
 {
@@ -88,6 +89,7 @@ class AuthController extends Controller
     {
         return response()->json([
             "data" => [
+                'user'=>JWTAuth::user(),
                 'access_token' => $token,
                 'token_type' => 'bearer',
                 'expires_in' => auth('api')->factory()->getTTL()

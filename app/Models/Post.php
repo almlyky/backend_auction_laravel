@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Post extends Model
 {
     //
+    use SoftDeletes;
     protected $fillable=[
         'name',
         'address',
@@ -33,8 +35,18 @@ class Post extends Model
 
         return Favorite::where('user_id', $userId)->where('post_id', $this->id)->exists() ? 1 : 0;
     }
-//     public function postImages()
-// {
-//     return $this->hasMany(PostImage::class, 'post_id');
-// }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function reports()
+    {
+        return $this->hasMany(Report::class, 'reported_post_id');
+    }
 }
